@@ -1,0 +1,85 @@
+Here’s the complete revised RMarkdown document:
+
+---
+title: "Week 4 Homework"
+author: "Your Name"  # Replace with your name
+date: "2024-10-25"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+# Load the necessary libraries for the analysis
+library(sf)
+library(here)
+library(terra)
+library(dplyr)
+library(ggplot2)
+library(tmap)
+library(tidyverse)
+# Uncomment the following line if 'countrycode' is not installed yet
+# install.packages('countrycode')
+library(countrycode)
+
+#——————————————————————————
+
+Part 1: Load the Datasets
+
+#——————————————————————————
+
+# Read in the world geographical data from the provided GeoJSON file 
+world_gdf <- sf::st_read('World_Countries_(Generalized)_9029012925078512962.geojson')
+
+# Load the Gender Inequality Index (GII) data using read_csv
+index_data_df <- read_csv('HDR23-24_Composite_indices_complete_time_series.csv')
+
+#——————————————————————————
+
+Part 2: Tidy and Filter the Index Data
+
+#——————————————————————————
+
+# Define the columns we are interested in
+columns_to_keep <- c('iso3', 'country', 'hdicode', 'gii_2010', 'gii_2019')
+
+# Filter the index data to keep only the relevant columns
+index_data_df <- index_data_df %>% dplyr::select(all_of(columns_to_keep))
+
+# Remove rows with missing values for the GII
+non_null_index_data_df <- index_data_df %>% filter(!is.na(gii_2010) & !is.na(gii_2019))
+
+# Exclude regional aggregations, focusing only on country-level data
+country_level_index_data_df <- non_null_index_data_df %>% filter(!is.na(hdicode))
+
+# Use the countrycode package to generate ISO3 codes for the world_gdf dataset
+world_gdf["iso3"] <- countrycode(world_gdf$ISO, origin = "iso2c", destination = "iso3c")
+
+#——————————————————————————
+
+Part 3: Join the Data and Calculate GII Differences
+
+#——————————————————————————
+
+# Perform a left join to merge GII data with the geographical data using ISO3 codes
+world_w_gii_gdf <- world_gdf %>% left_join(country_level_index_data_df, by = c("iso3"))
+
+# Calculate the difference in GII between 2010 and 2019
+world_w_gii_gdf["gii_diff_2010_and_2019"] <- world_w_gii_gdf$gii_2019 - world_w_gii_gdf$gii_2010
+
+#——————————————————————————
+
+Part 4: Visualize the GII Data
+
+#——————————————————————————
+
+# Create a plot to visualize the GII for 2010
+plot(world_w_gii_gdf %>% select(all_of(c("gii_2010", "geometry"))), main = "GII in 2010")
+
+# Create a plot to visualize the GII for 2019
+plot(world_w_gii_gdf %>% select(all_of(c("gii_2019", "geometry"))), main = "GII in 2019")
+
+# Create a plot to visualize the difference in GII from 2010 to 2019
+plot(world_w_gii_gdf %>% select(all_of(c("gii_diff_2010_and_2019", "geometry"))), main = "GII Difference (2010-2019)")
+
+Feel free to replace "Your Name" with your actual name or any other personal touch you'd like to add! If you need further adjustments, just let me know!
